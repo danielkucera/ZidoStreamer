@@ -18,7 +18,11 @@ import com.mstar.android.tvapi.common.vo.TvOsType;
 import com.mstar.android.tvapi.common.vo.VideoWindowType;
 import com.mstar.hdmirecorder.HdmiRecorder;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import static android.system.Os.mkfifo;
 
@@ -32,8 +36,10 @@ public class StreamService extends Service {
 
         //path=this.getApplicationContext().getFilesDir().getAbsolutePath() + "/stream";
 
-        path = "/data/data/eu.danman.zidostreamer.zidostreamer/stream.ts";
-        path = "/mnt/sdcard/stream.ts";
+        //path = "/data/data/eu.danman.zidostreamer.zidostreamer/stream.ts";
+//        path = "/mnt/sdcard/stream.ts";
+        path = "/var/tmp/stream.ts";
+
 
 
         /*
@@ -60,8 +66,9 @@ public class StreamService extends Service {
 
         ut.start();
 
-        */
         Log.d("fifo", "Error while creating a pipe (return:%d, errno:%d)");
+
+        */
 
     }
 
@@ -110,6 +117,29 @@ public class StreamService extends Service {
 
 
 
+//        String cmd = "/system/xbin/tail -c100000000 -f " + path + " | /mnt/sdcard/ffmpeg -i - -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
+        String cmd = "/mnt/sdcard/ffmpeg -i " + path + " -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
+
+        Log.d("starting command", cmd);
+
+        try {
+//            Process process = Runtime.getRuntime().exec("/mnt/sdcard/ffmpeg -re -i " + path + " -codec:v copy -codec:a copy -f mpegts udp://239.255.0.1:1234?pkt_size=1316");
+//            Process process = Runtime.getRuntime().exec("tail -/mnt/sdcard/ffmpeg -re -i " + path + " -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316");
+            Process process = Runtime.getRuntime().exec(cmd);
+
+            BufferedReader errstr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            /*
+            while (errstr.ready()){
+                Log.d("errstr", errstr.readLine());
+            }
+            */
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
         Log.d("Streamer", "instantiate Recorder");
         mHdmiRecorder = new HdmiRecorder();
         Log.d("Streamer", "set error listener");
@@ -148,7 +178,9 @@ public class StreamService extends Service {
 
         boolean ret = mHdmiRecorder.start();
 
-        return Service.START_NOT_STICKY;
+
+
+        return Service.START_STICKY;
 
     }
 

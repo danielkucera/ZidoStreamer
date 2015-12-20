@@ -43,7 +43,7 @@ public class MainActivity extends ActionBarActivity {
         Intent service = new Intent(this, StreamService.class);
         startService(service);
 
-        finish();
+//        finish();
 
 //        while (true){
 //            ut.dataSend("test".getBytes());
