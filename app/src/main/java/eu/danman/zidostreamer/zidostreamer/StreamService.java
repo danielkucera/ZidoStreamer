@@ -5,9 +5,17 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.system.ErrnoException;
 import android.util.Log;
 
+import com.mstar.android.tv.TvCommonManager;
+import com.mstar.android.tvapi.common.PictureManager;
+import com.mstar.android.tvapi.common.TvManager;
+import com.mstar.android.tvapi.common.exception.TvCommonException;
+import com.mstar.android.tvapi.common.vo.EnumScalerWindow;
+import com.mstar.android.tvapi.common.vo.TvOsType;
+import com.mstar.android.tvapi.common.vo.VideoWindowType;
 import com.mstar.hdmirecorder.HdmiRecorder;
 
 import java.io.File;
@@ -57,10 +65,48 @@ public class StreamService extends Service {
 
     }
 
+    public static void changeInputSource(TvOsType.EnumInputSource eis)
+    {
+
+        TvCommonManager commonService = TvCommonManager.getInstance();
+        if (commonService != null)
+        {
+            TvOsType.EnumInputSource currentSource = commonService.getCurrentInputSource();
+            if (currentSource != null)
+            {
+                if (currentSource.equals(eis))
+                {
+                    return;
+                }
+
+                commonService.setInputSource(eis);
+            }
+
+        }
+
+    }
+
+    public static boolean enableHDMI()
+    {
+        boolean bRet = false;
+        try
+        {
+            changeInputSource(TvOsType.EnumInputSource.E_INPUT_SOURCE_HDMI);
+            bRet = TvManager.getInstance().getPlayerManager().isSignalStable();
+        } catch (TvCommonException e)
+        {
+            e.printStackTrace();
+        }
+        return bRet;
+    }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        //TODO do something useful
+        //TODO do something
+
+
+        enableHDMI();
 
 
 
