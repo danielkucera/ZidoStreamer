@@ -4,11 +4,15 @@ import android.app.Service;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.hardware.Camera;
+import android.media.CamcorderProfile;
+import android.media.MediaRecorder;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.system.ErrnoException;
 import android.util.Log;
 
+import com.mstar.android.camera.MCamera;
 import com.mstar.android.tv.TvCommonManager;
 import com.mstar.android.tvapi.common.PictureManager;
 import com.mstar.android.tvapi.common.TvManager;
@@ -114,16 +118,24 @@ public class StreamService extends Service {
     }
 }
 
+    /** A safe way to get an instance of the Camera object. */
+    public static Camera getCameraInstance(){
+        Camera c = null;
+        try {
+            c = Camera.open(5); // attempt to get a Camera instance
+        }
+        catch (Exception e){
+            // Camera is not available (in use or does not exist)
+        }
+        return c; // returns null if camera is unavailable
+    }
+
+    android.hardware.Camera mCamera;
+    MediaRecorder mMediaRecorder;
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         //TODO do something
-
-        Log.d("Streamer", "instantiate Recorder");
-        mHdmiRecorder = new HdmiRecorder();
-        Log.d("Streamer", "set error listener");
-
-
-
 
 
 
@@ -152,7 +164,8 @@ public class StreamService extends Service {
             File fFile = new File(streamFifo);
             fFile.delete();
 
-            Runtime.getRuntime().exec(fifoBin + " " + streamFifo);
+//            Runtime.getRuntime().exec(fifoBin + " " + streamFifo + "nic");
+            Runtime.getRuntime().exec(fifoBin + " " + streamFifo );
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -179,6 +192,8 @@ public class StreamService extends Service {
 
 //        String cmd = "/system/xbin/tail -c100000000 -f " + path + " | /mnt/sdcard/ffmpeg -i - -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
         String cmd =  ffmpegBin + " -i " + streamFifo + " -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
+//        String cmd =  ffmpegBin + " -i " + streamFifo + " -codec:v copy -codec:a copy -f flv rtmp://a.rtmp.youtube.com/live2/daniel.kucera.eu6p-a3wb-ew7h-06ks";
+
 
         Log.d("starting command", cmd);
 
@@ -206,76 +221,86 @@ public class StreamService extends Service {
 
         } catch (IOException e) {
             e.printStackTrace();
-            mHdmiRecorder.native_stop();
         }
 
 
-        mHdmiRecorder.setOnErrorListener(moErrorListener);
-        Log.d("Streamer", "set info listener");
+        mCamera = getCameraInstance();
+        mMediaRecorder = new MediaRecorder();
 
-        mHdmiRecorder.setOnInfoListener(mOnInfoListener);
-        Log.d("Streamer", "set file path");
+        Camera.Parameters camParams = mCamera.getParameters();
 
-        mHdmiRecorder.set_output_file_path(streamFifo);
-        Log.d("Streamer", "set format");
+        camParams.set(MCamera.Parameters.KEY_TRAVELING_RES, MCamera.Parameters.E_TRAVELING_RES_1920_1080);
+        camParams.set(MCamera.Parameters.KEY_TRAVELING_MODE, MCamera.Parameters.E_TRAVELING_ALL_VIDEO);
+        camParams.set(MCamera.Parameters.KEY_TRAVELING_MEM_FORMAT, MCamera.Parameters.E_TRAVELING_MEM_FORMAT_YUV422_YUYV);
+        camParams.set(MCamera.Parameters.KEY_MAIN_INPUT_SOURCE, MCamera.Parameters.MAPI_INPUT_SOURCE_HDMI);
+        camParams.set(MCamera.Parameters.KEY_TRAVELING_FRAMERATE, 30);
+        camParams.set(MCamera.Parameters.KEY_TRAVELING_SPEED, MCamera.Parameters.E_TRAVELING_SPEED_FAST);
 
-        mHdmiRecorder.set_output_format(HdmiRecorder.FORMAT_TS);
-        Log.d("Streamer", "set W&H");
+        mCamera.setParameters(camParams);
 
-        mHdmiRecorder.native_set_video_high(1080);
-        mHdmiRecorder.native_set_video_wigth(1920);
-        Log.d("Streamer", "set bitrate");
+        // Step 1: Unlock and set camera to MediaRecorder
+        mCamera.unlock();
+        mMediaRecorder.setCamera(mCamera);
 
-        mHdmiRecorder.native_set_video_encoder_bitrate(5 * 1024 * 1024);
-
-        Log.d("Streamer", "set framerate");
-
-        mHdmiRecorder.native_set_video_framerate(30);
-
-        Log.d("Streamer", "set travel mode??");
-
-        mHdmiRecorder.native_set_video_travelingMode(4);
-
-        Log.d("Streamer", "set sub source?");
-
-        mHdmiRecorder.native_set_video_subSource(23);
-
-        Log.d("Streamer", "start recording");
-
-        boolean ret = mHdmiRecorder.start();
+        // Step 2: Set sources
+        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
+        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
 
 
+        // Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
+        //mMediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
 
-        String errline;
 
-        /*
+        // set TS
+        mMediaRecorder.setOutputFormat(8);
+        mMediaRecorder.setVideoSize(1920, 1080);
+        mMediaRecorder.setVideoFrameRate(30);
+        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+        mMediaRecorder.setVideoEncodingBitRate(2000);
 
-        OutputStream stdin = process.getOutputStream();
 
-        InputStream stdout = process.getInputStream();
+        // Step 4: Set output file
+        mMediaRecorder.setOutputFile(streamFifo);
 
-        BufferedReader errstr = new BufferedReader(new InputStreamReader(stdout));
+        // Step 5: Set the preview output
+        //mMediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface());
 
-        while (true) {
+        // Step 6: Prepare configured MediaRecorder
+        try {
+            mMediaRecorder.prepare();
+        } catch (IllegalStateException e) {
+            Log.d("nejde", "IllegalStateException preparing MediaRecorder: " + e.getMessage());
+            releaseMediaRecorder();
 
-            try {
-
-                    errline = errstr.readLine();
-
-                    if (errline.length() > 0){
-                        Log.d("errstr", errstr.readLine());
-                    }
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        } catch (IOException e) {
+            Log.d("nejde", "IOException preparing MediaRecorder: " + e.getMessage());
+            releaseMediaRecorder();
         }
 
-        */
+        mMediaRecorder.start();
+
 
         return Service.START_STICKY;
 
     }
+
+    private void releaseMediaRecorder(){
+        if (mMediaRecorder != null) {
+            mMediaRecorder.reset();   // clear recorder configuration
+            mMediaRecorder.release(); // release the recorder object
+            mMediaRecorder = null;
+            mCamera.lock();           // lock camera for later use
+        }
+    }
+
+    private void releaseCamera(){
+        if (mCamera != null){
+            mCamera.release();        // release the camera for other applications
+            mCamera = null;
+        }
+    }
+
 
     HdmiRecorder.OnInfoListener	mOnInfoListener	= new HdmiRecorder.OnInfoListener() {
 
