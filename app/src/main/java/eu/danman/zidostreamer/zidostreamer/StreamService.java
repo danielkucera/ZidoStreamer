@@ -24,8 +24,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.security.Provider;
 
 
 public class StreamService extends Service {
@@ -161,22 +163,23 @@ public class StreamService extends Service {
             fdPair = ParcelFileDescriptor.createPipe();
         } catch (IOException e) {
             e.printStackTrace();
+
+            return Service.START_NOT_STICKY;
         }
 
         //get a handle to your read and write fd objects.
         ParcelFileDescriptor readFD = fdPair[0];
         ParcelFileDescriptor writeFD = fdPair[1];
 
-        //next create an input stream to read from the read side of the pipe.
-        FileInputStream reader = new FileInputStream(readFD.getFileDescriptor());
-
-        BufferedInputStream bufferedReader = new BufferedInputStream(reader);
-
-
         // Start ffmpeg process
 
 //        String cmd = "/system/xbin/tail -c100000000 -f " + path + " | /mnt/sdcard/ffmpeg -i - -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
-        String cmd =  ffmpegBin + " -i udp://:12345 -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
+//        String cmd =  ffmpegBin + " -i udp://:12345 -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
+//        String cmd =  ffmpegBin + " -i - -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
+//        String cmd =  ffmpegBin + " -i - -codec:v copy -codec:a copy -bsf:a aac_adtstoasc -f flv rtmp://a.rtmp.youtube.com/live2/daniel.kucera.eu6p-a3wb-ew7h-06ks";
+        //String cmd =  ffmpegBin + " -i - -codec:v copy -codec:a copy -bsf:a aac_adtstoasc -f flv rtmp://a.rtmp.youtube.com/live2/daniel.kucera.eu6p-a3wb-ew7h-06ks";
+//        String cmd =  ffmpegBin + " -i -  -strict -2 -codec:v copy -codec:a aac -b:a 128k -f flv -metadata streamName=myStream tcp://bonsai.danman.eu:6666";
+        String cmd =  ffmpegBin + " -i -  -strict -2 -codec:v copy -codec:a aac -b:a 128k -f flv rtmp://a.rtmp.youtube.com/live2/daniel.kucera.eu6p-a3wb-ew7h-06ks";
 //        String cmd =  ffmpegBin + "k -i udp://:12345 -codec:v copy -codec:a copy -f flv rtmp://a.rtmp.youtube.com/live2/daniel.kucera.eu6p-a3wb-ew7h-06ks";
 
         Log.d("starting ffmpeg", cmd);
@@ -222,6 +225,8 @@ public class StreamService extends Service {
 
         } catch (IOException e) {
             e.printStackTrace();
+
+            return Service.START_NOT_STICKY;
         }
 
 
@@ -267,16 +272,70 @@ public class StreamService extends Service {
 
         // set TS
         mMediaRecorder.setOutputFormat(8);
+//        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.HE_AAC);
+        mMediaRecorder.setAudioSamplingRate(44100);
+        mMediaRecorder.setAudioEncodingBitRate(128*1024);
+
         mMediaRecorder.setVideoSize(1920, 1080);
         mMediaRecorder.setVideoFrameRate(30);
-        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-        mMediaRecorder.setAudioSamplingRate(44100);
-        mMediaRecorder.setVideoEncodingBitRate(2000);
+        mMediaRecorder.setVideoEncodingBitRate(4500*1024);
 
 
         // Step 4: Set output file
-        mMediaRecorder.setOutputFile(socketWrapper.getFileDescriptor());
+        mMediaRecorder.setOutputFile(writeFD.getFileDescriptor());
+
+
+        // create reader thread
+
+        //next create an input stream to read from the read side of the pipe.
+
+
+        //final BufferedInputStream bufferedReader = new BufferedInputStream(reader);
+
+        final ParcelFileDescriptor finalreadFD = readFD;
+
+        Thread readerThread = new Thread() {
+            @Override
+            public void run() {
+
+                byte[] buffer = new byte[8192];
+                int read = 0;
+
+                OutputStream ffmpegInput = ffmpegProcess.getOutputStream();
+
+                //while (true) {
+
+                    final FileInputStream reader = new FileInputStream(finalreadFD.getFileDescriptor());
+
+                    try {
+
+                        while (true) {
+
+                            //if (reader.available() > 0){
+
+                            read = reader.read(buffer);
+
+                            ffmpegInput.write(buffer, 0, read);
+
+                            //}
+
+                        }
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+
+                        onDestroy();
+
+                    }
+
+                //}
+            }
+        };
+
+        readerThread.start();
+
 
         // Step 5: Set the preview output
         //mMediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface());
