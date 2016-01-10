@@ -2,66 +2,64 @@ package eu.danman.zidostreamer.zidostreamer;
 
 import android.app.Service;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.Intent;
 import android.hardware.Camera;
-import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.os.IBinder;
-import android.os.SystemClock;
-import android.system.ErrnoException;
+import android.os.ParcelFileDescriptor;
+import android.os.StrictMode;
 import android.util.Log;
 
 import com.mstar.android.camera.MCamera;
 import com.mstar.android.tv.TvCommonManager;
-import com.mstar.android.tvapi.common.PictureManager;
 import com.mstar.android.tvapi.common.TvManager;
 import com.mstar.android.tvapi.common.exception.TvCommonException;
-import com.mstar.android.tvapi.common.vo.EnumScalerWindow;
 import com.mstar.android.tvapi.common.vo.TvOsType;
-import com.mstar.android.tvapi.common.vo.VideoWindowType;
-import com.mstar.hdmirecorder.HdmiRecorder;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
-import static android.system.Os.mkfifo;
 
 public class StreamService extends Service {
-
-    private HdmiRecorder mHdmiRecorder = null;
 
     String myPath;
 
     String streamFifo;
 
+    String ffmpegBin;
+
     public StreamService() {
 
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
-        //path = "/data/data/eu.danman.zidostreamer.zidostreamer/stream.ts";
-//        path = "/mnt/sdcard/stream.ts";
-//        path = "/var/tmp/stream.ts";
+        StrictMode.setThreadPolicy(policy);
+
+        //myPath = this.getApplicationContext().getFilesDir().getAbsolutePath();
+        myPath = "/data/data/eu.danman.zidostreamer.zidostreamer/files/";
+
+        streamFifo = myPath + "/stream.ts";
+        ffmpegBin = myPath + "/ffmpeg";
 
 
+        // copy ffmpeg from assets to data folder
+        File fmBin = new File(ffmpegBin);
 
+        if (!fmBin.exists()){
 
-        /*
-        UdpThread ut;
+            copyFile("ffmpeg", ffmpegBin, this);
 
-        ut = new UdpThread(path);
+            fmBin = new File(ffmpegBin);
+            fmBin.setExecutable(true);
 
-        //ut.openFile("/mnt/usb/sda1/HdmiRecorder/video20151205210104.ts");
-
-        ut.start();
-
-        Log.d("fifo", "Error while creating a pipe (return:%d, errno:%d)");
-
-        */
+        }
 
     }
 
@@ -69,6 +67,7 @@ public class StreamService extends Service {
     {
 
         TvCommonManager commonService = TvCommonManager.getInstance();
+
         if (commonService != null)
         {
             TvOsType.EnumInputSource currentSource = commonService.getCurrentInputSource();
@@ -130,101 +129,116 @@ public class StreamService extends Service {
         return c; // returns null if camera is unavailable
     }
 
-    android.hardware.Camera mCamera;
-    MediaRecorder mMediaRecorder;
+    boolean isProcessRunning(Process process){
+
+        try {
+            process.exitValue();
+        } catch (IllegalThreadStateException e){
+            return true;
+        }
+
+        return false;
+    }
+
+    android.hardware.Camera mCamera = null;
+    MediaRecorder mMediaRecorder = null;
+    Process ffmpegProcess = null;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         //TODO do something
 
-
-
-        myPath=this.getFilesDir().getAbsolutePath();
-
-        streamFifo=myPath + "/stream.ts";
-
-        String fifoBin = myPath + "/mkfifo";
-
-
-        File fBin = new File(fifoBin);
-
-        if (!fBin.exists()){
-
-            copyFile("mkfifo", fifoBin, this);
-
-            fBin = new File(fifoBin);
-            fBin.setExecutable(true);
-
-        }
-
-
-        //mkfifo
-        try {
-
-            File fFile = new File(streamFifo);
-            fFile.delete();
-
-//            Runtime.getRuntime().exec(fifoBin + " " + streamFifo + "nic");
-            Runtime.getRuntime().exec(fifoBin + " " + streamFifo );
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-
-        String ffmpegBin = myPath + "/ffmpeg";
-
-        File fmBin = new File(ffmpegBin);
-
-        if (!fmBin.exists()){
-
-            copyFile("ffmpeg", ffmpegBin, this);
-
-            fBin = new File(ffmpegBin);
-            fBin.setExecutable(true);
-
-        }
-
+        // try cleanup first
+        stopFFMPEG();
+        releaseMediaRecorder();
+        releaseCamera();
 
         enableHDMI();
 
+        //make a pipe containing a read and a write parcelfd
+        ParcelFileDescriptor[] fdPair = new ParcelFileDescriptor[0];
+        try {
+            fdPair = ParcelFileDescriptor.createPipe();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
+        //get a handle to your read and write fd objects.
+        ParcelFileDescriptor readFD = fdPair[0];
+        ParcelFileDescriptor writeFD = fdPair[1];
+
+        //next create an input stream to read from the read side of the pipe.
+        FileInputStream reader = new FileInputStream(readFD.getFileDescriptor());
+
+        BufferedInputStream bufferedReader = new BufferedInputStream(reader);
+
+
+        // Start ffmpeg process
 
 //        String cmd = "/system/xbin/tail -c100000000 -f " + path + " | /mnt/sdcard/ffmpeg -i - -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
-        String cmd =  ffmpegBin + " -i " + streamFifo + " -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
-//        String cmd =  ffmpegBin + " -i " + streamFifo + " -codec:v copy -codec:a copy -f flv rtmp://a.rtmp.youtube.com/live2/daniel.kucera.eu6p-a3wb-ew7h-06ks";
+        String cmd =  ffmpegBin + " -i udp://:12345 -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316";
+//        String cmd =  ffmpegBin + "k -i udp://:12345 -codec:v copy -codec:a copy -f flv rtmp://a.rtmp.youtube.com/live2/daniel.kucera.eu6p-a3wb-ew7h-06ks";
 
-
-        Log.d("starting command", cmd);
-
-        Process process = null;
+        Log.d("starting ffmpeg", cmd);
 
         try {
-//            Process process = Runtime.getRuntime().exec("/mnt/sdcard/ffmpeg -re -i " + path + " -codec:v copy -codec:a copy -f mpegts udp://239.255.0.1:1234?pkt_size=1316");
-//            Process process = Runtime.getRuntime().exec("tail -/mnt/sdcard/ffmpeg -re -i " + path + " -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.255.0.1:1234?pkt_size=1316");
-            process = Runtime.getRuntime().exec(cmd);
 
+            ffmpegProcess = Runtime.getRuntime().exec(cmd);
 
-            /*
-            process = new ProcessBuilder()
-                    .command(cmd)
-                    .redirectErrorStream(true)
-                    .start();
-*/
+            final BufferedReader in = new BufferedReader(new InputStreamReader(ffmpegProcess.getErrorStream()));
 
+            final Process thisFFMPEG = ffmpegProcess;
 
-            /*
-            while (errstr.ready()){
-                Log.d("errstr", errstr.readLine());
-            }
-            */
+            // create logger thread
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+
+                    String log = null;
+
+                    try {
+
+                        while(isProcessRunning(thisFFMPEG)) {
+
+                            log = in.readLine();
+
+                            if ((log != null) && (log.length() > 0)){
+                                Log.d("ffmpeg", log);
+                            } else {
+                                sleep(100);
+                            }
+
+                        }
+
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
+            thread.start();
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
 
+        // create output UDP socket
+        ParcelFileDescriptor socketWrapper = null;
+
+        try {
+            DatagramSocket socket = new DatagramSocket();
+            socket.connect(InetAddress.getByName("127.0.0.1"), 12345);
+            socketWrapper = ParcelFileDescriptor.fromDatagramSocket(socket);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // initialize recording hardware
         mCamera = getCameraInstance();
+
         mMediaRecorder = new MediaRecorder();
 
         Camera.Parameters camParams = mCamera.getParameters();
@@ -257,11 +271,12 @@ public class StreamService extends Service {
         mMediaRecorder.setVideoFrameRate(30);
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+        mMediaRecorder.setAudioSamplingRate(44100);
         mMediaRecorder.setVideoEncodingBitRate(2000);
 
 
         // Step 4: Set output file
-        mMediaRecorder.setOutputFile(streamFifo);
+        mMediaRecorder.setOutputFile(socketWrapper.getFileDescriptor());
 
         // Step 5: Set the preview output
         //mMediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface());
@@ -280,10 +295,15 @@ public class StreamService extends Service {
 
         mMediaRecorder.start();
 
-
         return Service.START_STICKY;
 
     }
+
+    public void onDestroy() {
+        releaseMediaRecorder();       // if you are using MediaRecorder, release it first
+        releaseCamera();              // release the camera immediately on pause event
+    }
+
 
     private void releaseMediaRecorder(){
         if (mMediaRecorder != null) {
@@ -301,40 +321,12 @@ public class StreamService extends Service {
         }
     }
 
-
-    HdmiRecorder.OnInfoListener	mOnInfoListener	= new HdmiRecorder.OnInfoListener() {
-
-        @Override
-        public void onInfo(com.mstar.hdmirecorder.HdmiRecorder mr, int what, int extra) {
-            System.out.println("bob--mOnInfoListener what-===" + what);
-            if (what == HdmiRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
-                mHdmiRecorder.native_stop();
-            } else if (what == HdmiRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED) {
-            }
-
+    private void stopFFMPEG(){
+        if (ffmpegProcess != null){
+            ffmpegProcess.destroy();
         }
-    };
-
-    HdmiRecorder.OnErrorListener	moErrorListener	= new HdmiRecorder.OnErrorListener() {
-
-        @Override
-        public void onError(com.mstar.hdmirecorder.HdmiRecorder mr, int what, int extra) {
-            System.out.println("bob--moErrorListener what-===" + what);
-            mHdmiRecorder.native_stop();
-            // Toast.makeText(mContext,
-            // "error occur when recording what-=== "
-            // + what,
-            // Toast.LENGTH_LONG).show();
-            if (what == HdmiRecorder.MEDIA_RECORDER_ERROR_UNKNOWN) {
-                // We may have
-                // run out of
-                // space on the
-                // sdcard.
-                // Show the
-                // toast.
-            }
-        }
-    };
+        ffmpegProcess = null;
+    }
 
     @Override
     public IBinder onBind(Intent intent) {

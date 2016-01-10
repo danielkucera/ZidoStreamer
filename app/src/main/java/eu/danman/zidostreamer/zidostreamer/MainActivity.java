@@ -10,12 +10,6 @@ import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import com.mstar.android.tv.TvCommonManager;
-import com.mstar.android.tvapi.common.TvManager;
-import com.mstar.android.tvapi.common.exception.TvCommonException;
-import com.mstar.android.tvapi.common.vo.TvOsType;
-
-
 public class MainActivity extends ActionBarActivity {
 
 
@@ -30,27 +24,12 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-
-//        StrictMode.setThreadPolicy(policy);
-
-
         surfaceView = (SurfaceView) this.findViewById(R.id.surfaceView);
-
-
-//        showHdmiOnSurfaceView();
 
         Intent service = new Intent(this, StreamService.class);
         startService(service);
 
-//        finish();
-
-//        while (true){
-//            ut.dataSend("test".getBytes());
-//        }
-
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -72,85 +51,6 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-
-    public static void changeInputSource(TvOsType.EnumInputSource eis)
-    {
-
-        TvCommonManager commonService = TvCommonManager.getInstance();
-        if (commonService != null)
-        {
-            TvOsType.EnumInputSource currentSource = commonService.getCurrentInputSource();
-            if (currentSource != null)
-            {
-                if (currentSource.equals(eis))
-                {
-                    return;
-                }
-
-                commonService.setInputSource(eis);
-            }
-
-        }
-
-    }
-
-
-    public static boolean isHDMIinput()
-    {
-        boolean bRet = false;
-        try
-        {
-            changeInputSource(TvOsType.EnumInputSource.E_INPUT_SOURCE_HDMI);
-            bRet = TvManager.getInstance().getPlayerManager().isSignalStable();
-        } catch (TvCommonException e)
-        {
-            e.printStackTrace();
-        }
-        return bRet;
-    }
-
-    private void showHdmiOnSurfaceView()
-    {
-        mSurfaceHolder = surfaceView.getHolder();
-        callback = new android.view.SurfaceHolder.Callback()
-        {
-
-            @Override
-            public void surfaceDestroyed(SurfaceHolder holder)
-            {
-            }
-
-            @Override
-            public void surfaceCreated(SurfaceHolder holder)
-            {
-
-                try
-                {
-                    if (holder == null || holder.getSurface() == null || holder.getSurface().isValid() == false)
-                    {
-                        return;
-                    }
-                    if (TvManager.getInstance() != null)
-                    {
-                        TvManager.getInstance().getPlayerManager().setDisplay(mSurfaceHolder);
-                    }
-                } catch (TvCommonException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
-            {
-            }
-        };
-        mSurfaceHolder.addCallback((android.view.SurfaceHolder.Callback) callback);
-        mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-
-
     }
 
 }
