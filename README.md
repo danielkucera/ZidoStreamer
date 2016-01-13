@@ -20,3 +20,7 @@ Open in android studio and compile as usual. After compiling, run sign.sh becaus
 * bind remote control to start/stop/restart streaming
 * automatic stream restart after network or encoding failure
 * indicate recording with blinking status LED
+
+## Output screenshot
+
+![ScreenShot](youtube-screenshot.png)
