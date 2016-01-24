@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A 'parent' preference, which enables/disables child preferences (below)
+         when checked/unchecked. -->
+    <!--
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="start_after_boot"
+        android:title="Start streaming after boot" />
+        -->
+
+    <ListPreference
+        android:title="Stream type"
+        android:summary=""
+        android:key="stream_type"
+        android:defaultValue="1"
+        android:entries="@array/listStreamTypes"
+        android:entryValues="@array/listStreamTypesId" />
+
+    <EditTextPreference android:title="Destination URL"
+        android:key="dest_url"
+        android:summary=""
+        android:defaultValue="udp://239.254.0.1:1234"></EditTextPreference>
+
+
+
+</PreferenceScreen>
