@@ -198,23 +198,7 @@ public class StreamService extends Service {
         ParcelFileDescriptor writeFD = fdPair[1];
 
         // Start ffmpeg process
-
-        String cmd = "";
-
-        switch (settings.getString("stream_type", "1")){
-
-            case "1":
-                cmd = ffmpegBin + " -i - -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts ";
-                break;
-
-            case "2":
-                cmd = ffmpegBin + " -i - -strict -2 -codec:v copy -codec:a aac -b:a 128k -f flv ";
-                break;
-
-
-        }
-
-        cmd += settings.getString("dest_url", "");
+        String cmd = settings.getString("ffmpeg_cmd", "");
 
 
 
@@ -270,7 +254,11 @@ public class StreamService extends Service {
 
         } catch (IOException e) {
             e.printStackTrace();
+            return Service.START_NOT_STICKY;
 
+        } catch (RuntimeException e){
+            e.printStackTrace();
+            Toast.makeText(this, "You need to edit settings first!", Toast.LENGTH_LONG).show();
             return Service.START_NOT_STICKY;
         }
 
@@ -293,6 +281,8 @@ public class StreamService extends Service {
 
         Camera.Parameters camParams = mCamera.getParameters();
 
+
+
         camParams.set(MCamera.Parameters.KEY_TRAVELING_RES, MCamera.Parameters.E_TRAVELING_RES_1920_1080);
         camParams.set(MCamera.Parameters.KEY_TRAVELING_MODE, MCamera.Parameters.E_TRAVELING_ALL_VIDEO);
         camParams.set(MCamera.Parameters.KEY_TRAVELING_MEM_FORMAT, MCamera.Parameters.E_TRAVELING_MEM_FORMAT_YUV422_YUYV);
@@ -314,18 +304,24 @@ public class StreamService extends Service {
         // Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
         //mMediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
 
+        int audio_bitrate;
+        int video_bitrate;
+        int video_framerate;
+
+        audio_bitrate =  Integer.parseInt(settings.getString("audio_bitrate", "128")) * 1024;
+        video_bitrate =  Integer.parseInt(settings.getString("video_bitrate", "4500")) * 1024;
+        video_framerate =  Integer.parseInt(settings.getString("video_framerate", "30"));
 
         // set TS
         mMediaRecorder.setOutputFormat(8);
-//        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mMediaRecorder.setAudioSamplingRate(44100);
-        mMediaRecorder.setAudioEncodingBitRate(128*1024);
+        mMediaRecorder.setAudioEncodingBitRate(audio_bitrate);
 
         mMediaRecorder.setVideoSize(1920, 1080);
-        mMediaRecorder.setVideoFrameRate(30);
+        mMediaRecorder.setVideoFrameRate(video_framerate);
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-        mMediaRecorder.setVideoEncodingBitRate(4500*1024);
+        mMediaRecorder.setVideoEncodingBitRate(video_bitrate);
 
 
         // Step 4: Set output file

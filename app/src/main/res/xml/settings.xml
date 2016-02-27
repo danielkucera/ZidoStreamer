@@ -3,25 +3,34 @@
 
     <!-- A 'parent' preference, which enables/disables child preferences (below)
          when checked/unchecked. -->
-    <!--
+
     <SwitchPreference
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:key="start_after_boot"
         android:title="Start streaming after boot" />
-        -->
 
-    <ListPreference
-        android:title="Stream type"
+    <EditTextPreference android:title="FFMPEG command"
+        android:key="ffmpeg_cmd"
         android:summary=""
-        android:key="stream_type"
-        android:defaultValue="1"
-        android:entries="@array/listStreamTypes"
-        android:entryValues="@array/listStreamTypesId" />
+        android:defaultValue="/mnt/sdcard/ffmpeg -i - -codec:v copy -codec:a copy -bsf:v dump_extra -f mpegts udp://239.254.0.1:1234"></EditTextPreference>
 
-    <EditTextPreference android:title="Destination URL"
-        android:key="dest_url"
+    <EditTextPreference android:title="Video bitrate (kBps)"
+        android:key="video_bitrate"
+        android:numeric="integer"
         android:summary=""
-        android:defaultValue="udp://239.254.0.1:1234"></EditTextPreference>
+        android:defaultValue="4500"></EditTextPreference>
+
+    <EditTextPreference android:title="Video framerate"
+        android:key="video_framerate"
+        android:numeric="integer"
+        android:summary=""
+        android:defaultValue="30"></EditTextPreference>
+
+    <EditTextPreference android:title="Audio bitrate (kBps)"
+        android:key="audio_bitrate"
+        android:numeric="integer"
+        android:summary=""
+        android:defaultValue="128"></EditTextPreference>
 
 
 
