@@ -4,6 +4,7 @@ More info: https://blog.danman.eu/using-tronsmart-pavo-m9-for-hdmi-input-streami
 
 ## Installation
 * Copy signed.apk to your device and install it.
+* Get ffmpeg binary from https://github.com/WritingMinds/ffmpeg-android
 * Copy ffmpeg binary to /mnt/sdcard/ 
 
 ## Running
@@ -33,8 +34,6 @@ Open in android studio and compile as usual. After compiling, run sign.sh becaus
 * streaming runs in background
 
 ## TODO
-* start after android boot
-* automatic start on boot not workink, use 3rd party app for now (e.g. Startup Manager)
 * bind remote control to start/stop/restart streaming
 * automatic stream restart after network or encoding failure
 * indicate recording with blinking status LED
