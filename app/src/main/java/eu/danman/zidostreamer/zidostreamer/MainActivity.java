@@ -12,6 +12,11 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
 
+import com.mstar.android.tv.TvCommonManager;
+import com.mstar.android.tvapi.common.TvManager;
+import com.mstar.android.tvapi.common.exception.TvCommonException;
+import com.mstar.android.tvapi.common.vo.TvOsType;
+
 public class MainActivity extends ActionBarActivity {
 
 
@@ -19,7 +24,42 @@ public class MainActivity extends ActionBarActivity {
     SurfaceHolder mSurfaceHolder = null;
     SurfaceHolder.Callback	callback = null;
 
+    public static void changeInputSource(TvOsType.EnumInputSource eis)
+    {
 
+        TvCommonManager commonService = TvCommonManager.getInstance();
+
+        if (commonService != null)
+        {
+            TvOsType.EnumInputSource currentSource = commonService.getCurrentInputSource();
+            if (currentSource != null)
+            {
+                if (currentSource.equals(eis))
+                {
+                    return;
+                }
+
+                commonService.setInputSource(eis);
+            }
+
+        }
+
+    }
+
+    public static boolean enableHDMI()
+    {
+        boolean bRet = false;
+        try
+        {
+            changeInputSource(TvOsType.EnumInputSource.E_INPUT_SOURCE_STORAGE);
+            changeInputSource(TvOsType.EnumInputSource.E_INPUT_SOURCE_HDMI);
+            bRet = TvManager.getInstance().getPlayerManager().isSignalStable();
+        } catch (TvCommonException e)
+        {
+            e.printStackTrace();
+        }
+        return bRet;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +67,8 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         surfaceView = (SurfaceView) this.findViewById(R.id.surfaceView);
+
+        enableHDMI();
 
         Intent service = new Intent(this, StreamService.class);
         startService(service);

@@ -51,43 +51,6 @@ public class StreamService extends Service {
 
     }
 
-    public static void changeInputSource(TvOsType.EnumInputSource eis)
-    {
-
-        TvCommonManager commonService = TvCommonManager.getInstance();
-
-        if (commonService != null)
-        {
-            TvOsType.EnumInputSource currentSource = commonService.getCurrentInputSource();
-            if (currentSource != null)
-            {
-                if (currentSource.equals(eis))
-                {
-                    return;
-                }
-
-                commonService.setInputSource(eis);
-            }
-
-        }
-
-    }
-
-    public static boolean enableHDMI()
-    {
-        boolean bRet = false;
-        try
-        {
-            changeInputSource(TvOsType.EnumInputSource.E_INPUT_SOURCE_STORAGE);
-            changeInputSource(TvOsType.EnumInputSource.E_INPUT_SOURCE_HDMI);
-            bRet = TvManager.getInstance().getPlayerManager().isSignalStable();
-        } catch (TvCommonException e)
-        {
-            e.printStackTrace();
-        }
-        return bRet;
-    }
-
     private static void copyAsset(String assetPath, String localPath, Context context) {
     try {
         InputStream in = context.getAssets().open(assetPath);
@@ -181,7 +144,6 @@ public class StreamService extends Service {
         releaseMediaRecorder();
         releaseCamera();
 
-        enableHDMI();
 
         //make a pipe containing a read and a write parcelfd
         ParcelFileDescriptor[] fdPair = new ParcelFileDescriptor[0];
