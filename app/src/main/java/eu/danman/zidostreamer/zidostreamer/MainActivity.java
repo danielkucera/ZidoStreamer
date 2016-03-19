@@ -5,10 +5,12 @@ import android.content.Intent;
 import android.os.StrictMode;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.Toast;
 
 public class MainActivity extends ActionBarActivity {
 
@@ -53,6 +55,19 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+        Toast.makeText(this, "pressed "+event.toString(), Toast.LENGTH_SHORT).show();
+
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_MENU:
+        /* Sample for handling the Menu button globally */
+                return true;
+        }
+        return false;
     }
 
 }
