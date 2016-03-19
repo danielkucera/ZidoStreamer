@@ -20,7 +20,7 @@ public class BootReceiver extends BroadcastReceiver {
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         Boolean start_after_boot = settings.getBoolean("start_after_boot", false);
 
-        Toast.makeText(context, "ALEEEEEEEEEEE!", Toast.LENGTH_LONG);
+        Toast.makeText(context, "ALEEEEEEEEEEE!", Toast.LENGTH_LONG).show();
 
         if (true){
             Intent i = new Intent(context, MainActivity.class);
