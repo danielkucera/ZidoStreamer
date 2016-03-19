@@ -68,6 +68,12 @@ public class StreamService extends Service {
     }
 }
 
+    private void sendLog(String log){
+        Intent intent = new Intent("ToStreamerActivity");
+        intent.putExtra("log", log);
+        sendBroadcast(intent);
+    }
+
     public void copyFile(File src, File dst) throws IOException {
         InputStream in = new FileInputStream(src);
         OutputStream out = new FileOutputStream(dst);
@@ -198,6 +204,7 @@ public class StreamService extends Service {
 
                             if ((log != null) && (log.length() > 0)){
                                 Log.d("ffmpeg", log);
+                                sendLog(log);
                             } else {
                                 sleep(100);
                             }
@@ -358,21 +365,26 @@ public class StreamService extends Service {
         try {
 
             mMediaRecorder.start();
+            Toast.makeText(this, "Recording started",Toast.LENGTH_LONG).show();
 
         } catch (Exception e){
             Log.d("mediarecorder", "recording failed to start");
-            Toast.makeText(this, "Failed to start recording",Toast.LENGTH_LONG);
+            teardown();
+            Toast.makeText(this, "Failed to start recording",Toast.LENGTH_LONG).show();
         }
 
-        Toast.makeText(this, "Recording started",Toast.LENGTH_LONG);
-
-        return Service.START_STICKY;
+        return Service.START_NOT_STICKY;
 
     }
 
+    private void teardown(){
+        stopFFMPEG();
+        releaseMediaRecorder();
+        releaseCamera();
+    }
+
     public void onDestroy() {
-        releaseMediaRecorder();       // if you are using MediaRecorder, release it first
-        releaseCamera();              // release the camera immediately on pause event
+        teardown();
     }
 
 
