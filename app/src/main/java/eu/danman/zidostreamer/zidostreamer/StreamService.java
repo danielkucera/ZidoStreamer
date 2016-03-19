@@ -250,10 +250,17 @@ public class StreamService extends Service {
 
                     while (true) {
 
-                        read = reader.read(buffer);
-                        ffmpegInput.write(buffer, 0, read);
+                        if (reader.available()>0) {
+                            read = reader.read(buffer);
+                            ffmpegInput.write(buffer, 0, read);
+                        } else {
+                            sleep(10);
+                        }
 
                     }
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -264,11 +271,7 @@ public class StreamService extends Service {
         };
 
         readerThread.start();
-
-
-        // Step 5: Set the preview output
-        //mMediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface());
-
+        
         // Step 6: Prepare configured MediaRecorder
         try {
             mMediaRecorder.prepare();
