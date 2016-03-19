@@ -20,9 +20,7 @@ public class BootReceiver extends BroadcastReceiver {
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         Boolean start_after_boot = settings.getBoolean("start_after_boot", false);
 
-        Toast.makeText(context, "ALEEEEEEEEEEE!", Toast.LENGTH_LONG);
-
-        if (true){
+        if (start_after_boot){
             Intent i = new Intent(context, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(i);
