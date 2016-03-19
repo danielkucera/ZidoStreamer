@@ -3,13 +3,13 @@ Android app for live streaming of HDMI input on Zidoo X9 and Tronsmart Pavo M9 c
 More info: https://blog.danman.eu/using-tronsmart-pavo-m9-for-hdmi-input-streaming/
 
 ## Installation
-* Copy signed.apk to your device and install it.
+* Copy app/build/outputs/apk/app-debug.apk to your device and install it.
 * Copy ffmpeg binary to /mnt/sdcard/ 
 
 ## Running
 * Start app from menu
 * Press menu button and edit and confirm all settings
-* (optional) Install Startup Manager from Google Play and set ZidoStreamer to start after boot
+* Start streaming by pressing button "1" on remote
 * Restart your device
 
 ## Configuration
@@ -24,7 +24,7 @@ More info: https://blog.danman.eu/using-tronsmart-pavo-m9-for-hdmi-input-streami
 </pre>
 
 ## Compilation
-Open in android studio and compile as usual. After compiling, run sign.sh because it needs to signed by MStar key to gain access to required hardware.
+Open in Android studio and compile as usual.
 
 ## Features
 * streaming as MPEG-TS to network (unicast/multicast)
@@ -33,11 +33,9 @@ Open in android studio and compile as usual. After compiling, run sign.sh becaus
 * streaming runs in background
 
 ## TODO
-* start after android boot
-* automatic start on boot not workink, use 3rd party app for now (e.g. Startup Manager)
 * bind remote control to start/stop/restart streaming
 * automatic stream restart after network or encoding failure
-* indicate recording with blinking status LED
+* indicate recording with blinking status LED (probably not possible)
 
 ## Output screenshot
 
