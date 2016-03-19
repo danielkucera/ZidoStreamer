@@ -95,6 +95,13 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
+    @Override
+    protected void onResume(){
+        super.onResume();
+
+        enableHDMI();
+    }
+
     private boolean isStreaming() {
         ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -108,6 +115,10 @@ public class MainActivity extends ActionBarActivity {
     private void startStreaming(){
             service = new Intent(this, StreamService.class);
             startService(service);
+    }
+
+    private void stopStreaming(){
+
     }
 
     @Override
