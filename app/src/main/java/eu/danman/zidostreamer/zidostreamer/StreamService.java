@@ -211,18 +211,24 @@ public class StreamService extends Service {
         int audio_bitrate;
         int video_bitrate;
         int video_framerate;
+        int video_height;
+        int video_width;
 
         audio_bitrate =  Integer.parseInt(settings.getString("audio_bitrate", "128")) * 1024;
         video_bitrate =  Integer.parseInt(settings.getString("video_bitrate", "4500")) * 1024;
         video_framerate =  Integer.parseInt(settings.getString("video_framerate", "30"));
+        video_height = Integer.parseInt(settings.getString("video_height", "1080"));
+        video_width = Integer.parseInt(settings.getString("video_width", "1920"));
+
 
         // set TS
         mMediaRecorder.setOutputFormat(8);
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mMediaRecorder.setAudioChannels(2);
         mMediaRecorder.setAudioSamplingRate(44100);
         mMediaRecorder.setAudioEncodingBitRate(audio_bitrate);
 
-        mMediaRecorder.setVideoSize(1920, 1080);
+        mMediaRecorder.setVideoSize(video_width, video_height);
         mMediaRecorder.setVideoFrameRate(video_framerate);
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mMediaRecorder.setVideoEncodingBitRate(video_bitrate);
