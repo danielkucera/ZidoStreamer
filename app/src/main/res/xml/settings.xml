@@ -26,6 +26,13 @@
         android:summary=""
         android:defaultValue="30"></EditTextPreference>
 
+    <ListPreference android:title="Video size"
+        android:key="video_size"
+        android:defaultValue="0"
+        android:entries="@array/listVideoSizes"
+        android:entryValues="@array/listVideoSizesId"
+        />
+
     <EditTextPreference android:title="Audio bitrate (kBps)"
         android:key="audio_bitrate"
         android:numeric="integer"

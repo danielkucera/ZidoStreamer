@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="listStreamTypes">
-        <item>MPEG-TS</item>
-        <item>RTMP</item>
+    <string-array name="listVideoSizes">
+        <item>1920x1080</item>
+        <item>1280x720</item>
+        <item>720x576</item>
+        <item>720x480</item>
+        <item>640x368</item>
     </string-array>
 
-    <string-array name="listStreamTypesId">
+    <string-array name="listVideoSizesId">
+        <item>0</item>
         <item>1</item>
         <item>2</item>
+        <item>3</item>
+        <item>4</item>
     </string-array>
 
 </resources>

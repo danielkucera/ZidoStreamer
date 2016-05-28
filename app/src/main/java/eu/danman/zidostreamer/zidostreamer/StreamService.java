@@ -185,16 +185,55 @@ public class StreamService extends Service {
         }
 
 
+        // get stream settings
+        int audio_bitrate;
+        int video_bitrate;
+        int video_framerate;
+        int video_size;
+        int video_width = 1920;
+        int video_height = 1080;
+
+        audio_bitrate =  Integer.parseInt(settings.getString("audio_bitrate", "128")) * 1024;
+        video_bitrate =  Integer.parseInt(settings.getString("video_bitrate", "4500")) * 1024;
+        video_framerate =  Integer.parseInt(settings.getString("video_framerate", "30"));
+        video_size = Integer.parseInt(settings.getString("video_size", "0"));
+
+        int cam_size;
+
+        switch (video_size){
+            default:
+            case 0:
+                cam_size = MCamera.Parameters.E_TRAVELING_RES_1920_1080;
+                video_width = 1920; video_height = 1080;
+                break;
+            case 1:
+                cam_size = MCamera.Parameters.E_TRAVELING_RES_1280_720;
+                video_width = 1280; video_height = 720;
+                break;
+            case 2:
+                cam_size = MCamera.Parameters.E_TRAVELING_RES_720_576;
+                video_width = 720; video_height = 576;
+                break;
+            case 3:
+                cam_size = MCamera.Parameters.E_TRAVELING_RES_720_480;
+                video_width = 720; video_height = 480;
+                break;
+            case 4:
+                cam_size = MCamera.Parameters.E_TRAVELING_RES_640_368;
+                video_width = 640; video_height = 368;
+                break;
+        }
+
         // initialize recording hardware
         mCamera = getCameraInstance();
         mMediaRecorder = new MediaRecorder();
 
         Camera.Parameters camParams = mCamera.getParameters();
-        camParams.set(MCamera.Parameters.KEY_TRAVELING_RES, MCamera.Parameters.E_TRAVELING_RES_1920_1080);
+        camParams.set(MCamera.Parameters.KEY_TRAVELING_RES, cam_size);
         camParams.set(MCamera.Parameters.KEY_TRAVELING_MODE, MCamera.Parameters.E_TRAVELING_ALL_VIDEO);
         camParams.set(MCamera.Parameters.KEY_TRAVELING_MEM_FORMAT, MCamera.Parameters.E_TRAVELING_MEM_FORMAT_YUV422_YUYV);
         camParams.set(MCamera.Parameters.KEY_MAIN_INPUT_SOURCE, MCamera.Parameters.MAPI_INPUT_SOURCE_HDMI);
-        camParams.set(MCamera.Parameters.KEY_TRAVELING_FRAMERATE, 30);
+        camParams.set(MCamera.Parameters.KEY_TRAVELING_FRAMERATE, video_framerate);
         camParams.set(MCamera.Parameters.KEY_TRAVELING_SPEED, MCamera.Parameters.E_TRAVELING_SPEED_FAST);
         mCamera.setParameters(camParams);
 
@@ -205,20 +244,6 @@ public class StreamService extends Service {
         // Step 2: Set sources
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT);
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-
-
-        // get stream settings
-        int audio_bitrate;
-        int video_bitrate;
-        int video_framerate;
-        int video_height;
-        int video_width;
-
-        audio_bitrate =  Integer.parseInt(settings.getString("audio_bitrate", "128")) * 1024;
-        video_bitrate =  Integer.parseInt(settings.getString("video_bitrate", "4500")) * 1024;
-        video_framerate =  Integer.parseInt(settings.getString("video_framerate", "30"));
-        video_height = Integer.parseInt(settings.getString("video_height", "1080"));
-        video_width = Integer.parseInt(settings.getString("video_width", "1920"));
 
 
         // set TS
